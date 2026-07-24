@@ -8,6 +8,8 @@ SELECT
     created_date,
     created_user
 FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases
-WHERE TRIM(projeto) ILIKE '%1332%'
-  AND TRIM(nome_ponto) ILIKE '%MR43%'
-ORDER BY created_date, objectid;
+WHERE TRIM(projeto) ILIKE '1333'
+  AND TRIM(nome_ponto) ILIKE 'MR 15'
+ORDER BY
+    created_date,
+    objectid;
