@@ -1,4 +1,9 @@
-/* Pesquisar ponto específico de um projeto específico: */
+/* Pesquisar ponto específico de um projeto específico: 
+
+% permite encontrar qualquer texto antes ou depois do valor pesquisado
+
+%NOME%
+*/
 
 SELECT
     objectid,
