@@ -21,7 +21,7 @@ SELECT
     nome_ponto,
     created_date,
     created_user
-FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases
+FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
 WHERE TRIM(projeto) ILIKE '%1333%'
   AND TRIM(nome_ponto) ILIKE '%MR 15%'
 ORDER BY
