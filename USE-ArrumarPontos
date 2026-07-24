@@ -1,0 +1,117 @@
+/*
+Para testar: deixe ROLLBACK no final.
+Para salvar: troque ROLLBACK por COMMIT.
+*/
+
+BEGIN;
+
+DO $$
+DECLARE
+    /* Pode colocar somente um ou vários valores. */
+    v_projetos TEXT[] := ARRAY['1333'];
+    v_pontos TEXT[] := ARRAY['MR 15'];
+
+    /* Valores corretos que devem permanecer. */
+    v_projeto_correto TEXT := '1333';
+    v_ponto_correto TEXT := 'MR 15';
+
+    v_objectid_mantido INTEGER;
+    v_globalid_mantido TEXT;
+    v_ocupacoes_movidas INTEGER;
+    v_bases_convertidas INTEGER;
+    v_lista TEXT;
+BEGIN
+
+    /* Pega a base mais antiga. */
+    SELECT
+        objectid,
+        globalid
+    INTO
+        v_objectid_mantido,
+        v_globalid_mantido
+    FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
+    WHERE TRIM(projeto) ILIKE ANY (v_projetos)
+      AND TRIM(nome_ponto) ILIKE ANY (v_pontos)
+    ORDER BY
+        created_date ASC NULLS LAST,
+        objectid ASC
+    LIMIT 1;
+
+    IF v_globalid_mantido IS NULL THEN
+        RAISE EXCEPTION 'Nenhuma base encontrada. Nada foi alterado.';
+    END IF;
+
+    /* Guarda a lista das bases que serão convertidas. */
+    SELECT STRING_AGG(
+        FORMAT(
+            'ObjectID: %s
+GlobalID: %s',
+            objectid,
+            globalid
+        ),
+        E'\n\n'
+        ORDER BY created_date, objectid
+    )
+    INTO v_lista
+    FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
+    WHERE TRIM(projeto) ILIKE ANY (v_projetos)
+      AND TRIM(nome_ponto) ILIKE ANY (v_pontos)
+      AND globalid <> v_globalid_mantido;
+
+    /* Leva as ocupações para a base mais antiga. */
+    UPDATE hsu_9qqz5.service_19276d4d553c4a94bebf9facdbebb5b6_ocupacoes_evw
+    SET parentglobalid = v_globalid_mantido
+    WHERE parentglobalid IN (
+        SELECT globalid
+        FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
+        WHERE TRIM(projeto) ILIKE ANY (v_projetos)
+          AND TRIM(nome_ponto) ILIKE ANY (v_pontos)
+          AND globalid <> v_globalid_mantido
+    );
+
+    GET DIAGNOSTICS v_ocupacoes_movidas = ROW_COUNT;
+
+    /* Exclui as outras bases atuais pela view. */
+    DELETE
+    FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
+    WHERE TRIM(projeto) ILIKE ANY (v_projetos)
+      AND TRIM(nome_ponto) ILIKE ANY (v_pontos)
+      AND globalid <> v_globalid_mantido;
+
+    GET DIAGNOSTICS v_bases_convertidas = ROW_COUNT;
+
+    /* Corrige o projeto e o nome da base mantida. */
+    UPDATE hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases_evw
+    SET
+        projeto = v_projeto_correto,
+        nome_ponto = v_ponto_correto
+    WHERE globalid = v_globalid_mantido;
+
+    RAISE NOTICE E'
+Correção concluída.
+
+Base mantida:
+Nome: %
+Projeto: %
+ObjectID: %
+GlobalID: %
+
+Bases convertidas em ocupações:
+
+%
+
+Total de bases convertidas: %
+Total de ocupações vinculadas: %.
+',
+        v_ponto_correto,
+        v_projeto_correto,
+        v_objectid_mantido,
+        v_globalid_mantido,
+        COALESCE(v_lista, 'Nenhuma.'),
+        v_bases_convertidas,
+        v_ocupacoes_movidas;
+
+END
+$$;
+
+ROLLBACK;
