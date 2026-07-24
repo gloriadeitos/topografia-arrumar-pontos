@@ -1,8 +1,5 @@
 /* Pesquisar ponto específico de um projeto específico: */
 
-SELECT *
-FROM hsu_9qqz5.service_19276d4d553c4a94bebf9facd_levantamentobases
-
 SELECT
     objectid,
     globalid,
